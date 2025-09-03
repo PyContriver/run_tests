@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    tf_token: "{{ tf_token }}"
+    tfc_token: "{{ tf_token }}"
     organization: "Ansible-BU-TFC"
     workspace_name: "run_module_test"
 
@@ -27,7 +27,7 @@
         workspace: "{{ workspace_name }}"
         run_message: "Simple test - plan only"
         plan_only: true
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false  # Don't wait for completion in simple test
       register: plan_result
 
@@ -40,7 +40,7 @@
         workspace_id: "{{ workspace_id | default(omit) }}"
         run_message: "Simple test - using workspace ID"
         plan_only: true
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       register: workspace_id_result
       when: workspace_id is defined
@@ -56,7 +56,7 @@
         workspace: "{{ workspace_name }}"
         run_message: "Simple test - no polling"
         plan_only: true
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
         poll_timeout: 0
       register: no_poll_result
@@ -72,7 +72,7 @@
         run_message: "Simple test - save plan for discard"
         is_destroy: true
         auto_apply: true
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       register: save_plan_for_discard_result
 
@@ -84,7 +84,7 @@
       hashicorp.terraform.run:
         run_id: "{{ save_plan_for_discard_result.id }}"
         state: canceled
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       register: discard_result
       # when: save_plan_for_discard_result is changed
@@ -101,7 +101,7 @@
         workspace: "{{ workspace_name }}"
         run_message: "Check mode test - create run"
         plan_only: true
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       check_mode: true
       register: check_mode_present_result
@@ -123,7 +123,7 @@
       hashicorp.terraform.run:
         run_id: "{{ plan_result.id }}"
         state: applied
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       check_mode: true
       register: check_mode_applied_result
@@ -146,7 +146,7 @@
       hashicorp.terraform.run:
         run_id: "{{ plan_result.id }}"
         state: discarded
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       check_mode: true
       register: check_mode_discarded_result
@@ -168,7 +168,7 @@
       hashicorp.terraform.run:
         run_id: "{{ plan_result.id }}"
         state: canceled
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       check_mode: true
       register: check_mode_canceled_result
@@ -190,7 +190,7 @@
       hashicorp.terraform.run:
         run_id: "run-NonExistentRunID123"
         state: applied
-        tf_token: "{{ tf_token }}"
+        tf_token: "{{ tfc_token }}"
         poll: false
       check_mode: true
       register: check_mode_nonexistent_result
