@@ -58,7 +58,6 @@
         plan_only: true
         tf_token: "{{ tfc_token }}"
         poll: false
-        poll_timeout: 0
       register: no_poll_result
 
     - name: Display no-poll run result
@@ -71,7 +70,7 @@
         workspace: "{{ workspace_name }}"
         run_message: "Simple test - save plan for discard"
         is_destroy: true
-        auto_apply: true
+        save_plan: true
         tf_token: "{{ tfc_token }}"
         poll: false
       register: save_plan_for_discard_result
