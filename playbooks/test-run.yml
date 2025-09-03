@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    tfc_token: "{{ tf_token }}"
+    tfc_token: "{{ lookup('env', 'TF_TOKEN') }}"
     organization: "Ansible-BU-TFC"
     workspace_name: "run_module_test"
 
