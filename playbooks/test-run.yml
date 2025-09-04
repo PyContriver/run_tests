@@ -144,7 +144,7 @@
       ansible.builtin.assert:
         that:
           - invalid_run_canceled_result.failed is true
-          - invalid_run_canceled_result.msg == "Run run-1234abcd not found in the Terraform Cloud/Enterprise workspace"
+          - invalid_run_canceled_result.msg == "Run run-12345 not found in the Terraform Cloud/Enterprise workspace"
 
     - name: invalid run applied in check mode
       hashicorp.terraform.run:
