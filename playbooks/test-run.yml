@@ -89,7 +89,7 @@
 
     - name: Test 5a - Idempotent check - Apply the same run again
       hashicorp.terraform.run:
-        run_id: "{{ save_plan_for_discard_result.id }}"
+        run_id: "{{ apply_result.id }}"
         state: applied
         tf_token: "{{ tfc_token }}"
         poll: false
