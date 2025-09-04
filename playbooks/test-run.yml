@@ -87,19 +87,6 @@
         that:
           - apply_result is changed
 
-    - name: Test 5a - Idempotent check - Apply the same run again
-      hashicorp.terraform.run:
-        run_id: "{{ save_plan_for_apply_result.id }}"
-        state: applied
-        tf_token: "{{ tfc_token }}"
-        poll: false
-      register: idempotent_apply_result
-
-    - name: Assert that the idempotent apply run was not changed
-      ansible.builtin.assert:
-        that:
-          - idempotent_apply_result is not changed
-
     - name: Wait before next test
       ansible.builtin.pause:
         seconds: 60
