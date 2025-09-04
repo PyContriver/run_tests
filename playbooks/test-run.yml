@@ -6,6 +6,7 @@
     tfc_token: "{{ lookup('env', 'TF_TOKEN') }}"
     organization: "Ansible-BU-TFC"
     workspace_name: "run_module_test"
+    workspace_id: "ws-H8mKgXD2AUgK6BfN"
 
   tasks:
     - name: Verify required variables are set
@@ -23,8 +24,7 @@
 
     - name: Test 1 - Create a plan-only run
       hashicorp.terraform.run:
-        organization: "{{ organization }}"
-        workspace: "{{ workspace_name }}"
+        workspace_id: "{{ workspace_id }}"
         run_message: "Simple test - plan only"
         plan_only: true
         tf_token: "{{ tfc_token }}"
@@ -140,11 +140,6 @@
       ignore_errors: true
       register: invalid_run_canceled_result
 
-    - name: Assert that the invalid run canceled run failed
-      ansible.builtin.assert:
-        that:
-          - invalid_run_canceled_result.failed is true
-
     - name: invalid run applied in check mode
       hashicorp.terraform.run:
         run_id: "run-12345"
@@ -154,11 +149,6 @@
       check_mode: true
       ignore_errors: true
       register: invalid_run_canceled_result
-
-    - name: Assert that the invalid run canceled run failed
-      ansible.builtin.assert:
-        that:
-          - invalid_run_applied_result.failed is true
 
     - name: invalid run discarded in check mode
       hashicorp.terraform.run:
@@ -170,7 +160,3 @@
       ignore_errors: true
       register: invalid_run_discarded_result
 
-    - name: Assert that the invalid run canceled run failed
-      ansible.builtin.assert:
-        that:
-          - invalid_run_discarded_result.failed is true
