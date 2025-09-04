@@ -31,24 +31,10 @@
         poll: false  # Don't wait for completion in simple test
       register: plan_result
 
-    # - name: Display plan run result
-    #   ansible.builtin.debug:
-    #     var: plan_result
-
-    # - name: Test 2 - Create a run using workspace_id (if you have one)
-    #   hashicorp.terraform.run:
-    #     workspace_id: "{{ workspace_id | default(omit) }}"
-    #     run_message: "Simple test - using workspace ID"
-    #     plan_only: true
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   register: workspace_id_result
-    #   when: workspace_id is defined
-
-    # - name: Display workspace ID run result
-    #   ansible.builtin.debug:
-    #     var: workspace_id_result
-    #   when: workspace_id is defined
+    - name: Assert that the plan run was changed
+      ansible.builtin.assert:
+        that:
+          - plan_result is changed
 
     - name: Test 3 - Test run status without polling
       hashicorp.terraform.run:
@@ -60,11 +46,12 @@
         poll: false
       register: no_poll_result
 
-    # - name: Display no-poll run result
-    #   ansible.builtin.debug:
-    #     var: no_poll_result
+    - name: Assert that the no poll run was changed
+      ansible.builtin.assert:
+        that:
+          - no_poll_result is changed
 
-    - name: Test 4 - Create a save plan for discard test
+    - name: Test 4 - Create a save plan for apply test
       hashicorp.terraform.run:
         organization: "{{ organization }}"
         workspace: "{{ workspace_name }}"
@@ -74,23 +61,36 @@
         poll: false
       register: save_plan_for_discard_result
 
-    # - name: Display save plan for discard result
-    #   ansible.builtin.debug:
-    #     var: save_plan_for_discard_result
+    - name: Assert that the save plan for discard run was changed
+      ansible.builtin.assert:
+        that:
+          - save_plan_for_discard_result is changed
 
-    # - name: Test 5 - Discard the saved plan
-    #   hashicorp.terraform.run:
-    #     run_id: "{{ save_plan_for_discard_result.id }}"
-    #     state: discarded
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   register: discard_result
-      # when: save_plan_for_discard_result is changed
+    - name: Test 5 - Apply the saved plan
+      hashicorp.terraform.run:
+        run_id: "{{ save_plan_for_discard_result.id }}"
+        state: applied
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      register: apply_result
 
-    # - name: Display discard result
-    #   ansible.builtin.debug:
-    #     var: discard_result
-    #   when: discard_result is defined
+    - name: Assert that the apply run was changed
+      ansible.builtin.assert:
+        that:
+          - apply_result is changed
+
+    - name: Test 5a - Idempotent check - Apply the same run again
+      hashicorp.terraform.run:
+        run_id: "{{ save_plan_for_discard_result.id }}"
+        state: applied
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      register: idempotent_apply_result
+
+    - name: Assert that the idempotent apply run was not changed
+      ansible.builtin.assert:
+        that:
+          - idempotent_apply_result is not changed
 
 
     - name: Test 6 - Check mode for creating a new run (state=present)
@@ -104,20 +104,7 @@
       check_mode: true
       register: check_mode_present_result
 
-    # - name: Display check mode present result
-    #   ansible.builtin.debug:
-    #     var: check_mode_present_result
-
-    # - name: Verify check mode present result
-    #   ansible.builtin.assert:
-    #     that:
-    #       - check_mode_present_result is changed
-    #       - check_mode_present_result.msg == "Check mode is enabled, no changes will be made"
-    #       - check_mode_present_result.failed is false
-    #     fail_msg: "Check mode for state=present failed validation"
-    #     success_msg: "Check mode for state=present works correctly"
-
-    - name: Test 7 - Check mode for applying an existing run (state=applied)
+    - name: Test 7 - Check mode for applying an invalid run (state=applied)
       hashicorp.terraform.run:
         run_id: "run-12345"
         state: applied
@@ -127,94 +114,68 @@
       ignore_errors: true
       register: check_mode_applied_result
 
-    - name: Test 8 - auto_apply 
+    - name: Test 8 - auto_apply and is_destroy
       hashicorp.terraform.run:
         organization: "{{ organization }}"
         workspace: "{{ workspace_name }}"
         run_message: "Auto apply test"
         auto_apply: true
+        is_destroy: true
         tf_token: "{{ tfc_token }}"
         poll: true
         poll_timeout: 300
         poll_interval: 10
       register: auto_apply_result
 
-    # - name: Display check mode applied result
-    #   ansible.builtin.debug:
-    #     var: check_mode_applied_result
+    - name: Assert that the auto apply run was changed
+      ansible.builtin.assert:
+        that:
+          - auto_apply_result is changed
 
-    # - name: Verify check mode applied result
-    #   ansible.builtin.assert:
-    #     that:
-    #       - check_mode_applied_result is changed
-    #       - '"check mode is enabled, no changes will be made" in check_mode_applied_result.msg'
-    #       - '"found" in check_mode_applied_result.msg'
-    #       - check_mode_applied_result.failed is false
-    #     fail_msg: "Check mode for state=applied failed validation"
-    #     success_msg: "Check mode for state=applied works correctly"
+    - name: invalid run canceled in check mode
+      hashicorp.terraform.run:
+        run_id: "run-12345"
+        state: canceled
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      check_mode: true
+      ignore_errors: true
+      register: invalid_run_canceled_result
 
-    # - name: Test 8 - Check mode for discarding a run (state=discarded)
-    #   hashicorp.terraform.run:
-    #     run_id: "{{ plan_result.id }}"
-    #     state: discarded
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   check_mode: true
-    #   register: check_mode_discarded_result
+    - name: Assert that the invalid run canceled run failed
+      ansible.builtin.assert:
+        that:
+          - invalid_run_canceled_result.failed is true
+          - invalid_run_canceled_result.msg == "Run run-1234abcd not found in the Terraform Cloud/Enterprise workspace"
 
-    # - name: Display check mode discarded result
-    #   ansible.builtin.debug:
-    #     var: check_mode_discarded_result
+    - name: invalid run applied in check mode
+      hashicorp.terraform.run:
+        run_id: "run-12345"
+        state: applied
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      check_mode: true
+      ignore_errors: true
+      register: invalid_run_canceled_result
 
-    # - name: Verify check mode discarded result
-    #   ansible.builtin.assert:
-    #     that:
-    #       - check_mode_discarded_result is changed
-    #       - '"check mode is enabled, no changes will be made" in check_mode_discarded_result.msg'
-    #       - check_mode_discarded_result.failed is false
-    #     fail_msg: "Check mode for state=discarded failed validation"
-    #     success_msg: "Check mode for state=discarded works correctly"
+    - name: Assert that the invalid run canceled run failed
+      ansible.builtin.assert:
+        that:
+          - invalid_run_applied_result.failed is true
+          - invalid_run_applied_result.msg == "Run run-12345 not found in the Terraform Cloud/Enterprise workspace"
 
-    # - name: Test 9 - Check mode for canceling a run (state=canceled)
-    #   hashicorp.terraform.run:
-    #     run_id: "{{ plan_result.id }}"
-    #     state: canceled
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   check_mode: true
-    #   register: check_mode_canceled_result
+    - name: invalid run discarded in check mode
+      hashicorp.terraform.run:
+        run_id: "run-12345"
+        state: discarded
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      check_mode: true
+      ignore_errors: true
+      register: invalid_run_discarded_result
 
-    # - name: Display check mode canceled result
-    #   ansible.builtin.debug:
-    #     var: check_mode_canceled_result
-
-    # - name: Verify check mode canceled result
-    #   ansible.builtin.assert:
-    #     that:
-    #       - check_mode_canceled_result is changed
-    #       - '"check mode is enabled, no changes will be made" in check_mode_canceled_result.msg'
-    #       - check_mode_canceled_result.failed is false
-    #     fail_msg: "Check mode for state=canceled failed validation"
-    #     success_msg: "Check mode for state=canceled works correctly"
-
-    # - name: Test 10 - Check mode with non-existent run ID
-    #   hashicorp.terraform.run:
-    #     run_id: "run-NonExistentRunID123"
-    #     state: applied
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   check_mode: true
-    #   register: check_mode_nonexistent_result
-
-    # - name: Display check mode non-existent result
-    #   ansible.builtin.debug:
-    #     var: check_mode_nonexistent_result
-
-    # - name: Verify check mode non-existent result
-    #   ansible.builtin.assert:
-    #     that:
-    #       - check_mode_nonexistent_result is not changed
-    #       - '"not found" in check_mode_nonexistent_result.msg'
-    #       - check_mode_nonexistent_result.failed is false
-    #     fail_msg: "Check mode for non-existent run failed validation"
-    #     success_msg: "Check mode for non-existent run works correctly"
+    - name: Assert that the invalid run canceled run failed
+      ansible.builtin.assert:
+        that:
+          - invalid_run_discarded_result.failed is true
+          - invalid_run_discarded_result.msg == "Run run-12345 not found in the Terraform Cloud/Enterprise workspace"
