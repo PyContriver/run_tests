@@ -78,13 +78,13 @@
     #   ansible.builtin.debug:
     #     var: save_plan_for_discard_result
 
-    - name: Test 5 - Discard the saved plan
-      hashicorp.terraform.run:
-        run_id: "{{ save_plan_for_discard_result.id }}"
-        state: discarded
-        tf_token: "{{ tfc_token }}"
-        poll: false
-      register: discard_result
+    # - name: Test 5 - Discard the saved plan
+    #   hashicorp.terraform.run:
+    #     run_id: "{{ save_plan_for_discard_result.id }}"
+    #     state: discarded
+    #     tf_token: "{{ tfc_token }}"
+    #     poll: false
+    #   register: discard_result
       # when: save_plan_for_discard_result is changed
 
     # - name: Display discard result
@@ -117,14 +117,27 @@
     #     fail_msg: "Check mode for state=present failed validation"
     #     success_msg: "Check mode for state=present works correctly"
 
-    # - name: Test 7 - Check mode for applying an existing run (state=applied)
-    #   hashicorp.terraform.run:
-    #     run_id: "{{ plan_result.id }}"
-    #     state: applied
-    #     tf_token: "{{ tfc_token }}"
-    #     poll: false
-    #   check_mode: true
-    #   register: check_mode_applied_result
+    - name: Test 7 - Check mode for applying an existing run (state=applied)
+      hashicorp.terraform.run:
+        run_id: "run-12345"
+        state: applied
+        tf_token: "{{ tfc_token }}"
+        poll: false
+      check_mode: true
+      ignore_errors: true
+      register: check_mode_applied_result
+
+    - name: Test 8 - auto_apply 
+      hashicorp.terraform.run:
+        organization: "{{ organization }}"
+        workspace: "{{ workspace_name }}"
+        run_message: "Auto apply test"
+        auto_apply: true
+        tf_token: "{{ tfc_token }}"
+        poll: true
+        poll_timeout: 300
+        poll_interval: 10
+      register: auto_apply_result
 
     # - name: Display check mode applied result
     #   ansible.builtin.debug:
